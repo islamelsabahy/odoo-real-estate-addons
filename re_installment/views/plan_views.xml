@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_re_installment_plan_tree" model="ir.ui.view">
+        <field name="name">re.installment.plan.tree</field>
+        <field name="model">re.installment.plan</field>
+        <field name="arch" type="xml">
+            <tree decoration-muted="state == 'cancelled'" decoration-success="state == 'confirmed'">
+                <field name="name"/>
+                <field name="unit_id"/>
+                <field name="partner_id"/>
+                <field name="total_price"/>
+                <field name="total_paid"/>
+                <field name="balance"/>
+                <field name="state"/>
+                <field name="currency_id" column_invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_re_installment_plan_form" model="ir.ui.view">
+        <field name="name">re.installment.plan.form</field>
+        <field name="model">re.installment.plan</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_generate" type="object" string="Generate Schedule"
+                            class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_confirm" type="object" string="Confirm Sale"
+                            invisible="state != 'draft'"/>
+                    <button name="action_cancel" type="object" string="Cancel"
+                            invisible="state == 'cancelled'"/>
+                    <button name="action_reset_draft" type="object" string="Reset to Draft"
+                            invisible="state != 'cancelled'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Sale">
+                            <field name="unit_id" readonly="state != 'draft'"/>
+                            <field name="partner_id" readonly="state != 'draft'"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="total_price" readonly="state != 'draft'"/>
+                        </group>
+                        <group string="Terms">
+                            <field name="start_date" readonly="state != 'draft'"/>
+                            <field name="down_payment_pct" readonly="state != 'draft'"/>
+                            <field name="installment_count" readonly="state != 'draft'"/>
+                            <field name="months_between" readonly="state != 'draft'"/>
+                            <field name="maintenance_pct" readonly="state != 'draft'"/>
+                            <field name="maintenance_due" readonly="state != 'draft'"
+                                   required="maintenance_pct > 0"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Schedule">
+                            <field name="line_ids">
+                                <tree editable="bottom" decoration-success="paid">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="label"/>
+                                    <field name="due_date"/>
+                                    <field name="amount" sum="Total"/>
+                                    <field name="paid"/>
+                                    <field name="paid_date"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </tree>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="total_scheduled"/>
+                                <field name="total_paid"/>
+                                <field name="balance" class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_re_installment_plan" model="ir.actions.act_window">
+        <field name="name">Installment Plans</field>
+        <field name="res_model">re.installment.plan</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <menuitem id="menu_re_installment_plan" name="Installment Plans"
+              parent="re_unit.menu_re_root" action="action_re_installment_plan" sequence="30"/>
+</odoo>

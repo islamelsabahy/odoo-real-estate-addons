@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="seq_re_installment_plan" model="ir.sequence">
+        <field name="name">Installment Plan</field>
+        <field name="code">re.installment.plan</field>
+        <field name="prefix">PLAN/%(year)s/</field>
+        <field name="padding">4</field>
+    </record>
+</odoo>

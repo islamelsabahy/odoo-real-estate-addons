@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_re_installment_plan_user,re.installment.plan user,model_re_installment_plan,base.group_user,1,1,1,0
+access_re_installment_line_user,re.installment.line user,model_re_installment_line,base.group_user,1,1,1,1
