@@ -15,6 +15,17 @@ schedule = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(schedule)
 
 
+class WebVectorsTests(unittest.TestCase):
+    """tests/web_vectors.json drives the browser calculator's parity test; fail if it goes stale."""
+
+    def test_generated_vectors_are_current(self):
+        path = Path(__file__).resolve().parents[1] / "scripts" / "build_web_data.py"
+        spec = importlib.util.spec_from_file_location("build_web_data", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertEqual(mod.stale(), [], "run: python scripts/build_web_data.py")
+
+
 class AddMonthsTests(unittest.TestCase):
     def test_month_end_clamps(self):
         self.assertEqual(schedule.add_months(date(2026, 1, 31), 1), date(2026, 2, 28))

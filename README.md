@@ -13,6 +13,10 @@
 | `re_unit` | `base` | Projects, units (apartment/villa/office/retail), price per m², Available → Reserved → Sold | المشاريع والوحدات وحالة الإتاحة |
 | `re_installment` | `re_unit`, `mail` | Installment plan with generated schedule, paid tracking, balance, chatter | خطة التقسيط وجدول الدفعات ومتابعة المدفوع |
 
+## Try it in the browser / حاسبة من المتصفح
+
+**https://islamelsabahy.github.io/odoo-real-estate-addons/** (needs GitHub Pages enabled on `/docs`). An installment schedule calculator that uses the same rules as the `re_installment` module: change price, down payment, count and spacing, then export a PDF, CSV or copy the table. It runs client-side; nothing is uploaded. / حاسبة جدول تقسيط بنفس منطق الموديول، مع تصدير PDF وCSV.
+
 ## How the schedule works / منطق الجدول
 
 - Down payment is due on the plan start date (% of price).
@@ -25,6 +29,8 @@ The logic lives in `re_installment/models/schedule.py` with no Odoo imports, so 
 ```bash
 python -m unittest discover -s tests -v
 ```
+
+The browser calculator (`docs/schedule.js`) is a port of that file using exact integer cents. `tests/web_vectors.json` is generated from the Python code (`python scripts/build_web_data.py`) and replayed by `node tests/test_schedule.js`, so the two cannot drift silently.
 
 ## Install / التثبيت
 

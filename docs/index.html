@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Installment Schedule Calculator</title>
+<meta name="description" content="Real-estate installment schedule calculator: down payment, equal installments, maintenance deposit. Same logic as the re_installment Odoo module. Runs in your browser.">
+<style>
+  :root { --bg:#f7f8fa; --card:#fff; --ink:#1b2430; --muted:#5b6675; --line:#d9dee6; --accent:#0b6bcb; --err:#c62828; --errbg:#fdecea; --ok:#127a3d; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#10151c; --card:#18202a; --ink:#e8edf3; --muted:#9aa7b6; --line:#2a3644; --accent:#58a6ff; --err:#ff8a80; --errbg:#3a1a18; --ok:#4cc38a; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 system-ui, "Segoe UI", Tahoma, sans-serif; }
+  main { max-width:900px; margin:0 auto; padding:20px 16px 48px; }
+  header { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  h1 { font-size:1.4rem; margin:.2em 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin:16px 0; }
+  .note { color:var(--muted); font-size:.85rem; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px; }
+  label { display:flex; flex-direction:column; font-size:.82rem; color:var(--muted); gap:4px; }
+  input, button { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink); min-height:40px; }
+  input[type=number], input[type=date] { direction:ltr; text-align:start; }
+  button { cursor:pointer; background:var(--accent); color:#fff; border-color:var(--accent); }
+  button.secondary { background:transparent; color:var(--accent); }
+  .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .chips button { padding:2px 10px; min-height:30px; font-size:.82rem; }
+  #err { background:var(--errbg); color:var(--err); border:1px solid var(--err); border-radius:8px; padding:10px 14px; font-weight:600; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-bottom:12px; }
+  .stat { border:1px solid var(--line); border-radius:8px; padding:8px 12px; }
+  .stat b { display:block; font-size:1.2rem; direction:ltr; unicode-bidi:isolate; text-align:start; }
+  .stat small { color:var(--muted); }
+  .tablewrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.92rem; }
+  th, td { padding:6px 8px; border-bottom:1px solid var(--line); text-align:start; white-space:nowrap; }
+  td.num, th.num { text-align:end; direction:ltr; unicode-bidi:isolate; }
+  td.date { direction:ltr; unicode-bidi:isolate; }
+  tr.sub td { color:var(--muted); }
+  tfoot td { font-weight:700; }
+  .meta, .printhead { display:none; }
+  [hidden] { display:none !important; }
+  @media print {
+    @page { margin:14mm; }
+    :root { --bg:#fff; --card:#fff; --ink:#111; --muted:#444; --line:#bbb; --accent:#0b4f9c; }
+    body { background:#fff; font-size:11pt; }
+    main > *:not(#results):not(.printhead) { display:none !important; }
+    .printhead { display:block !important; }
+    .card { border:0; padding:0; }
+    .actions { display:none !important; }
+    .meta { display:block; color:#444; margin:0 0 8px; }
+    tr { break-inside:avoid; }
+    thead { display:table-header-group; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 id="t-title"></h1>
+    <button class="secondary" id="lang" type="button">English</button>
+  </header>
+  <p class="note" id="t-intro"></p>
+
+  <section class="card" aria-labelledby="t-plan">
+    <h2 id="t-plan" style="font-size:1.05rem;margin:0 0 10px"></h2>
+    <div class="grid">
+      <label><span id="l-total"></span><input id="total" type="number" min="0" step="any" value="2500000" inputmode="decimal"></label>
+      <label><span id="l-down"></span><input id="down" type="number" min="0" step="any" value="10" inputmode="decimal"></label>
+      <label><span id="l-count"></span><input id="count" type="number" min="1" step="1" value="12" inputmode="numeric"></label>
+      <label><span id="l-months"></span><input id="months" type="number" min="1" step="1" value="3" inputmode="numeric">
+        <span class="chips" id="chips"></span></label>
+      <label><span id="l-start"></span><input id="start" type="date"></label>
+      <label><span id="l-maint"></span><input id="maint" type="number" min="0" step="any" value="0" inputmode="decimal"></label>
+      <label id="md-wrap" hidden><span id="l-md"></span><input id="md" type="date"></label>
+      <label style="grid-column:1/-1"><span id="l-ref"></span><input id="ref" type="text" maxlength="80"></label>
+    </div>
+  </section>
+
+  <div class="printhead"><h1 id="p-title"></h1></div>
+  <section class="card" id="results" aria-live="polite">
+    <p id="err" hidden></p>
+    <div id="out">
+      <p class="meta" id="meta"></p>
+      <div class="stats" id="stats"></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th id="h-n">#</th><th id="h-item"></th><th id="h-date"></th><th class="num" id="h-amt"></th><th class="num" id="h-paid"></th><th class="num" id="h-rem"></th></tr></thead>
+        <tbody id="rows"></tbody>
+        <tfoot><tr><td colspan="3" id="f-total"></td><td class="num" id="f-sum"></td><td></td><td></td></tr></tfoot>
+      </table></div>
+      <p class="note" id="r-note"></p>
+    </div>
+    <div class="actions">
+      <button id="pdf" type="button"></button>
+      <button class="secondary" id="csv" type="button"></button>
+      <button class="secondary" id="copy" type="button"></button>
+    </div>
+  </section>
+
+  <p class="note" id="t-foot"></p>
+  <p class="note"><a href="https://github.com/islamelsabahy/odoo-real-estate-addons">GitHub</a> · MIT</p>
+</main>
+<script src="schedule.js"></script>
+<script>
+(function () {
+  var T = {
+    ar: { dir:"rtl", lang:"English", title:"حاسبة جدول التقسيط العقاري",
+      intro:"مقدم + أقساط متساوية + وديعة صيانة اختيارية. نفس منطق موديول re_installment في Odoo: الفرق بيروح لآخر قسط فالجدول دايماً يساوي السعر.",
+      plan:"بيانات الخطة", total:"السعر الإجمالي (جنيه)", down:"المقدم (%)", count:"عدد الأقساط", months:"شهور بين كل قسطين", start:"تاريخ البداية (المقدم)",
+      maint:"وديعة الصيانة (%)", md:"تاريخ استحقاق الوديعة", ref:"اسم العميل / الوحدة (يظهر في التقرير)",
+      price:"السعر", downAmt:"المقدم", instAmt:"قيمة القسط", lastAmt:"آخر قسط", maintAmt:"وديعة الصيانة", end:"آخر استحقاق",
+      item:"البند", date:"الاستحقاق", amt:"المبلغ", paid:"المسدد تراكمياً", rem:"المتبقي", totalRow:"الإجمالي",
+      down_l:"المقدم", inst_l:"القسط", maint_l:"وديعة الصيانة", chips:[["شهري",1],["ربع سنوي",3],["نصف سنوي",6],["سنوي",12]],
+      pdf:"تصدير PDF", csv:"تنزيل CSV", copy:"انسخ الجدول", copied:"اتنسخ", rtitle:"جدول سداد",
+      note:"المقدم مستحق في تاريخ البداية. القسط k مستحق بعد k × (الشهور) من تاريخ البداية، ويتحسب من البداية كل مرة فمفيش انزياح في آخر الشهر. الأرقام تقريبية لأغراض التخطيط وما تغنيش عن العقد.",
+      foot:"أداة تخطيط وليست عرضاً تعاقدياً. الكود والاختبارات في المستودع، والنتائج مطابقة لنسخة Python على مئات الحالات." },
+    en: { dir:"ltr", lang:"العربية", title:"Installment Schedule Calculator",
+      intro:"Down payment + equal installments + optional maintenance deposit. Same logic as the re_installment Odoo module: rounding goes to the last installment so the schedule always equals the price.",
+      plan:"Plan", total:"Total price (EGP)", down:"Down payment (%)", count:"Number of installments", months:"Months between installments", start:"Start date (down payment)",
+      maint:"Maintenance deposit (%)", md:"Deposit due date", ref:"Customer / unit (shown on the report)",
+      price:"Price", downAmt:"Down payment", instAmt:"Installment", lastAmt:"Last installment", maintAmt:"Maintenance deposit", end:"Final due date",
+      item:"Item", date:"Due date", amt:"Amount", paid:"Paid to date", rem:"Remaining", totalRow:"Total",
+      down_l:"Down payment", inst_l:"Installment", maint_l:"Maintenance deposit", chips:[["Monthly",1],["Quarterly",3],["Semi-annual",6],["Annual",12]],
+      pdf:"Export PDF", csv:"Download CSV", copy:"Copy table", copied:"Copied", rtitle:"Payment schedule",
+      note:"The down payment is due on the start date. Installment k is due k × months after the start date, always counted from the start so month-end dates do not drift. Planning figures only; the contract governs.",
+      foot:"A planning tool, not a contractual offer. The code and tests are in the repository; results match the Python module on hundreds of cases." }
+  };
+  var lang = /^en/i.test(navigator.language || "") ? "en" : "ar";
+  var rowsData = null;
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+  function money(c) { var s = Schedule.fmtCents(c), p = s.split("."); return p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "." + p[1]; }
+
+  function labelOf(l, n) {
+    var L = T[lang];
+    if (l.label === "Down payment") return L.down_l;
+    if (l.label === "Maintenance deposit") return L.maint_l;
+    return L.inst_l + " " + l.label.split(" ")[1];
+  }
+
+  function compute() {
+    var L = T[lang], opts = {
+      total: $("total").value, down: $("down").value, count: parseInt($("count").value, 10), months: parseInt($("months").value, 10),
+      start: $("start").value, maint: $("maint").value, maintDue: $("md").value
+    };
+    $("md-wrap").hidden = !(parseFloat($("maint").value) > 0);
+    var lines;
+    try { lines = Schedule.build(opts); }
+    catch (e) {
+      rowsData = null; $("out").hidden = true; $("err").hidden = false;
+      $("err").textContent = /^(Invalid date|Not a number)/.test(e.message) ? L.bad : (L.errors[e.message] || e.message);
+      $("pdf").disabled = $("csv").disabled = $("copy").disabled = true; return;
+    }
+    $("err").hidden = true; $("out").hidden = false; $("pdf").disabled = $("csv").disabled = $("copy").disabled = false;
+    var total = Schedule.toCents(opts.total);
+    var sorted = lines.map(function (l, i) { return { l: l, i: i }; }).sort(function (a, b) { return a.l.due_date < b.l.due_date ? -1 : a.l.due_date > b.l.due_date ? 1 : a.i - b.i; });
+    var paid = 0n, tbody = $("rows"); tbody.innerHTML = ""; rowsData = [];
+    sorted.forEach(function (x, idx) {
+      var c = Schedule.toCents(x.l.amount); paid += c;
+      var tr = el("tr"); tr.appendChild(el("td", "", String(idx + 1))); tr.appendChild(el("td", "", labelOf(x.l)));
+      tr.appendChild(el("td", "date", x.l.due_date)); tr.appendChild(el("td", "num", money(c)));
+      tr.appendChild(el("td", "num", money(paid))); tr.appendChild(el("td", "num", money(total - paid)));
+      tbody.appendChild(tr);
+      rowsData.push([idx + 1, labelOf(x.l), x.l.due_date, Schedule.fmtCents(c), Schedule.fmtCents(paid), Schedule.fmtCents(total - paid)]);
+    });
+    $("f-total").textContent = L.totalRow; $("f-sum").textContent = money(Schedule.sumCents(lines));
+
+    var inst = lines.filter(function (l) { return /^Installment/.test(l.label); }), stats = $("stats"); stats.innerHTML = "";
+    function stat(label, value) { var d = el("div", "stat"); d.appendChild(el("b", "", value)); d.appendChild(el("small", "", label)); stats.appendChild(d); }
+    stat(L.price, money(total));
+    var dl = lines.filter(function (l) { return l.label === "Down payment"; })[0]; if (dl) stat(L.downAmt, money(Schedule.toCents(dl.amount)));
+    stat(L.instAmt, money(Schedule.toCents(inst[0].amount)));
+    if (inst.length > 1 && inst[inst.length - 1].amount !== inst[0].amount) stat(L.lastAmt, money(Schedule.toCents(inst[inst.length - 1].amount)));
+    var ml = lines.filter(function (l) { return l.label === "Maintenance deposit"; })[0]; if (ml) stat(L.maintAmt, money(Schedule.toCents(ml.amount)));
+    stat(L.end, sorted[sorted.length - 1].l.due_date);
+    var refv = $("ref").value.trim();
+    $("meta").textContent = (refv ? refv + " · " : "") + new Date().toISOString().slice(0, 10);
+  }
+
+  function tsv() {
+    var L = T[lang], head = ["#", L.item, L.date, L.amt, L.paid, L.rem];
+    return [head].concat(rowsData).map(function (r) { return r.join("\t"); }).join("\n");
+  }
+
+  function applyLang() {
+    var L = T[lang];
+    L.bad = lang === "ar" ? "راجع القيم المدخلة (رقم أو تاريخ غير صالح)." : "Check the inputs (invalid number or date).";
+    L.errors = lang === "ar" ? {
+      "Total price must be positive.": "السعر لازم يكون أكبر من صفر.",
+      "At least one installment is required.": "لازم قسط واحد على الأقل.",
+      "Months between installments must be at least 1.": "الشهور بين الأقساط لازم تكون 1 على الأقل.",
+      "Percentages cannot be negative.": "النسب ما تبقاش بالسالب.",
+      "Down payment plus maintenance must be below 100%.": "المقدم + وديعة الصيانة لازم يكونوا أقل من 100%.",
+      "A maintenance due date is required when maintenance % is set.": "حدد تاريخ استحقاق وديعة الصيانة."
+    } : {};
+    document.documentElement.lang = lang; document.documentElement.dir = L.dir; document.title = L.title;
+    $("lang").textContent = L.lang; $("t-title").textContent = L.title; $("t-intro").textContent = L.intro; $("t-plan").textContent = L.plan;
+    ["total", "down", "count", "months", "start", "maint", "md", "ref"].forEach(function (k) { $("l-" + k).textContent = L[k]; });
+    $("h-item").textContent = L.item; $("h-date").textContent = L.date; $("h-amt").textContent = L.amt; $("h-paid").textContent = L.paid; $("h-rem").textContent = L.rem;
+    $("pdf").textContent = L.pdf; $("csv").textContent = L.csv; $("copy").textContent = L.copy; $("p-title").textContent = L.rtitle;
+    $("r-note").textContent = L.note; $("t-foot").textContent = L.foot;
+    var chips = $("chips"); chips.innerHTML = "";
+    L.chips.forEach(function (c) { var b = el("button", "secondary", c[0]); b.type = "button"; b.dataset.m = c[1]; chips.appendChild(b); });
+    compute();
+  }
+
+  function download(name, text, type) {
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type: type })); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  }
+  function safeName() { var r = $("ref").value.trim().replace(/[\\/:*?"<>|]+/g, "-"); return "payment-schedule" + (r ? "-" + r : ""); }
+
+  $("pdf").addEventListener("click", function () {
+    if (!rowsData) return;
+    var prev = document.title; document.title = safeName();
+    function restore() { document.title = prev; window.removeEventListener("afterprint", restore); }
+    window.addEventListener("afterprint", restore); window.print();
+  });
+  $("csv").addEventListener("click", function () {
+    if (!rowsData) return;
+    var L = T[lang], q = function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; };
+    var lines = [["#", L.item, L.date, L.amt, L.paid, L.rem]].concat(rowsData).map(function (r) { return r.map(q).join(","); });
+    download(safeName() + ".csv", "﻿" + lines.join("\r\n") + "\r\n", "text/csv;charset=utf-8");
+  });
+  $("copy").addEventListener("click", function () {
+    if (!rowsData) return; var b = $("copy");
+    function done() { b.textContent = T[lang].copied; setTimeout(function () { b.textContent = T[lang].copy; }, 1500); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(tsv()).then(done, function () {});
+  });
+  $("chips").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) { $("months").value = b.dataset.m; compute(); } });
+  ["total", "down", "count", "months", "start", "maint", "md", "ref"].forEach(function (id) { $(id).addEventListener("input", compute); });
+  $("lang").addEventListener("click", function () { lang = lang === "en" ? "ar" : "en"; applyLang(); });
+
+  var d = new Date(); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() + 1);
+  $("start").value = d.toISOString().slice(0, 10);
+  var m = new Date(d); m.setUTCFullYear(m.getUTCFullYear() + 2); $("md").value = m.toISOString().slice(0, 10);
+  applyLang();
+})();
+</script>
+</body>
+</html>

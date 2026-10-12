@@ -16,6 +16,11 @@ jobs:
           python-version: "3.11"
       - name: Unit tests (no Odoo needed)
         run: python -m unittest discover -s tests -v
+      - name: Browser calculator matches the Python schedule
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: python scripts/build_web_data.py --check && node tests/test_schedule.js
       - name: Byte-compile modules
         run: python -m compileall -q re_unit re_installment
       - name: Parse XML files
