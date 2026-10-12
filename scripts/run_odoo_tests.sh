@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 docker compose up -d db
 docker compose run --rm odoo \
   odoo -d "test_$(date +%s)" -i re_unit,re_installment \
-  --test-enable --stop-after-init --log-level=test 2>&1 | tee /tmp/odoo-test.log
+  --test-enable --test-tags /re_unit,/re_installment --stop-after-init --log-level=test 2>&1 | tee /tmp/odoo-test.log
 
 if grep -E " 0 failed, 0 error\(s\) of [1-9][0-9]* tests" /tmp/odoo-test.log; then
   echo "PASS: Odoo module tests"

@@ -52,7 +52,7 @@ def build_schedule(
         raise ValueError("Percentages cannot be negative.")
     if down_pct + maint_pct >= 100:
         raise ValueError("Down payment plus maintenance must be below 100%.")
-    if maint_pct > 0 and maintenance_due is None:
+    if maint_pct > 0 and not maintenance_due:
         raise ValueError("A maintenance due date is required when maintenance % is set.")
 
     down = (total * down_pct / 100).quantize(CENT, rounding=ROUND_DOWN)

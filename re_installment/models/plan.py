@@ -79,7 +79,7 @@ class ReInstallmentPlan(models.Model):
                     int(plan.months_between),
                     plan.start_date,
                     plan.maintenance_pct,
-                    plan.maintenance_due,
+                    plan.maintenance_due or None,
                 )
             except ValueError as exc:
                 raise UserError(str(exc)) from exc

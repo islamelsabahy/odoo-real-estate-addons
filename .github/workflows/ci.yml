@@ -55,7 +55,7 @@ jobs:
             -v "$PWD/re_installment:/mnt/extra-addons/re_installment" \
             odoo:17.0 \
             odoo -d ci_db -i re_unit,re_installment \
-                 --test-enable --stop-after-init --log-level=test \
+                 --test-enable --test-tags /re_unit,/re_installment --stop-after-init --log-level=test \
                  2>&1 | tee odoo-test.log
           set -e
           # Odoo prints a final "N failed, M error(s) of K tests" summary line.
