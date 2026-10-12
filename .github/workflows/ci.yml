@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  schedule-logic:
+    name: Schedule logic tests and static checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Unit tests (no Odoo needed)
+        run: python -m unittest discover -s tests -v
+      - name: Byte-compile modules
+        run: python -m compileall -q re_unit re_installment
+      - name: Parse XML files
+        run: |
+          python - <<'EOF'
+          import glob, xml.dom.minidom as m
+          files = glob.glob("**/*.xml", recursive=True)
+          for f in files:
+              m.parse(f)
+          print(f"{len(files)} XML files parsed")
+          EOF
+
+  odoo-tests:
+    name: Odoo 17 module tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: odoo
+          POSTGRES_PASSWORD: odoo
+          POSTGRES_DB: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U odoo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install both modules and run their tests in the official Odoo 17 image
+        run: |
+          set -o pipefail
+          docker run --rm --network host \
+            -e HOST=127.0.0.1 -e USER=odoo -e PASSWORD=odoo \
+            -v "$PWD/re_unit:/mnt/extra-addons/re_unit" \
+            -v "$PWD/re_installment:/mnt/extra-addons/re_installment" \
+            odoo:17.0 \
+            odoo -d ci_db -i re_unit,re_installment \
+                 --test-enable --stop-after-init --log-level=test \
+                 2>&1 | tee odoo-test.log
+          # Odoo prints a final "N failed, M error(s) of K tests" summary line.
+          grep -E " 0 failed, 0 error\(s\) of [1-9][0-9]* tests" odoo-test.log

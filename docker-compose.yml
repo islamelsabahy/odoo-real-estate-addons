@@ -1,0 +1,33 @@
+# Local STAGING setup for trying the add-ons. Not for production.
+#   cp .env.example .env
+#   docker compose up -d
+#   open http://localhost:8069, create a database, install "Real Estate Installment Plans"
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-odoo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - odoo-db:/var/lib/postgresql/data
+    # No published port: only the Odoo container can reach the database.
+
+  odoo:
+    image: odoo:17.0
+    depends_on:
+      - db
+    ports:
+      - "127.0.0.1:8069:8069"
+    environment:
+      HOST: db
+      USER: ${POSTGRES_USER:-odoo}
+      PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - odoo-data:/var/lib/odoo
+      - ./re_unit:/mnt/extra-addons/re_unit
+      - ./re_installment:/mnt/extra-addons/re_installment
+
+volumes:
+  odoo-db:
+  odoo-data:

@@ -1,5 +1,7 @@
 # odoo-real-estate-addons
 
+[![CI](https://github.com/islamelsabahy/odoo-real-estate-addons/actions/workflows/ci.yml/badge.svg)](https://github.com/islamelsabahy/odoo-real-estate-addons/actions/workflows/ci.yml)
+
 **EN** — Odoo 17 add-ons for real estate developers: a units catalog with availability status, and installment plans (down payment, equal installments, maintenance deposit) that mark the unit as sold on confirmation.
 
 **AR** — موديولات Odoo 17 لشركات التطوير العقاري: كتالوج الوحدات بحالة الإتاحة، وخطط التقسيط (مقدم، أقساط متساوية، وديعة صيانة) مع تحويل الوحدة لـ "مباعة" عند التأكيد.
@@ -29,6 +31,23 @@ python -m unittest discover -s tests -v
 1. Copy `re_unit` and `re_installment` into your Odoo addons path.
 2. Restart Odoo, enable developer mode, then Apps → Update Apps List.
 3. Install **Real Estate Installment Plans** (it pulls in `re_unit`).
+
+## Try it locally / تجربة محلية
+
+A staging setup with Odoo 17 and PostgreSQL is included. The database is not exposed outside the Docker network, and Odoo listens on localhost only.
+
+```bash
+cp .env.example .env          # set your own POSTGRES_PASSWORD
+docker compose up -d          # then open http://localhost:8069 and create a database
+./scripts/run_odoo_tests.sh   # installs both modules in a throwaway DB and runs their tests
+```
+
+## Tests / الاختبارات
+
+| Layer | Where it runs | Covers |
+|---|---|---|
+| Schedule logic (`tests/`) | Anywhere, no Odoo | Rounding, month-end dates, validation |
+| Odoo tests (`re_unit/tests`, `re_installment/tests`) | Odoo 17 (CI uses the official image) | Unit workflow, constraints, plan generate/confirm/cancel, balances |
 
 ## Status and limits / الحالة
 
