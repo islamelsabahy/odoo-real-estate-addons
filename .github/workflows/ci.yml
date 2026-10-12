@@ -48,7 +48,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install both modules and run their tests in the official Odoo 17 image
         run: |
-          set -o pipefail
+          set +e
           docker run --rm --network host \
             -e HOST=127.0.0.1 -e USER=odoo -e PASSWORD=odoo \
             -v "$PWD/re_unit:/mnt/extra-addons/re_unit" \
@@ -57,5 +57,14 @@ jobs:
             odoo -d ci_db -i re_unit,re_installment \
                  --test-enable --stop-after-init --log-level=test \
                  2>&1 | tee odoo-test.log
+          set -e
           # Odoo prints a final "N failed, M error(s) of K tests" summary line.
-          grep -E " 0 failed, 0 error\(s\) of [1-9][0-9]* tests" odoo-test.log
+          if grep -qE " 0 failed, 0 error\(s\) of [1-9][0-9]* tests" odoo-test.log; then
+            grep -E " 0 failed, 0 error\(s\) of [1-9][0-9]* tests" odoo-test.log
+          else
+            # Surface the useful lines as annotations so the cause is visible on the run page.
+            esc() { sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}'; }
+            echo "::error title=Odoo errors::$(grep -nE 'ERROR|FAIL|Traceback|CRITICAL|Error:' odoo-test.log | head -40 | esc)"
+            echo "::error title=Odoo log tail::$(tail -n 30 odoo-test.log | esc)"
+            exit 1
+          fi
