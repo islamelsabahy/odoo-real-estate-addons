@@ -51,7 +51,7 @@ docker compose up -d          # then open http://localhost:8069 and create a dat
 
 ## Status and limits / الحالة
 
-- The pure schedule logic is unit-tested. The Odoo models and views were written for Odoo 17 but **have not been run on a live Odoo instance yet**: test on a staging database first.
+- Both modules install and pass their tests (26 tests) on the official Odoo 17 image in CI. That covers models, constraints, workflow and view loading, not UI usability: still try it on a staging database before production.
 - Access rights give all internal users read/write/create. Tighten with dedicated groups before production.
 - Not included yet: payment registration against invoices/journal entries, cheque tracking, sales commissions, Odoo 18 `<list>` views.
 
